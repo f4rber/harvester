@@ -2,6 +2,7 @@ import re
 import os
 import time
 from signal import SIGKILL
+import subprocess
 import json
 import random
 import urllib3
@@ -228,10 +229,14 @@ def regex_checker(req, url):
 def scanner(url):
     enabled = open("enabled.txt", "r").read().strip()
     if enabled == "False":
-        if hasattr(os, 'getpid'):  # only available on Unix
-            time.sleep(10)
-            os.kill(os.getppid(), SIGKILL)
-            os.kill(os.getpid(), SIGKILL)
+        name = __file__.split("/")[-1]
+        pids = subprocess.check_output([f"""ps -aux | grep '{name}' | grep -v 'grep {name}' | awk """ + """'{print $2}'"""], shell=True, stderr=subprocess.STDOUT).decode("utf-8", "ignore").strip().splitlines()
+        for pid in pids:
+            if int(pid) == os.getpid():
+                continue
+            os.kill(int(pid), SIGKILL)
+        os.kill(os.getppid(), SIGKILL)
+        os.kill(os.getpid(), SIGKILL)
     resp_len = 0
     try:
         if "http" not in url:
@@ -258,6 +263,9 @@ def scanner(url):
         if "cms" in builtwith_req:
             f = open(f"reports/cms.txt", "a", encoding="utf-8")
             f.write(f"{url}|{','.join(builtwith_req['cms'])}\n")
+        if "web-frameworks" in builtwith_req:
+            f = open(f"reports/web-frameworks.txt", "a", encoding="utf-8")
+            f.write(f"{url}|{','.join(builtwith_req['web-frameworks'])}\n")
 
         if page_html:
             all_script_tags = BeautifulSoup(page_html, features="html.parser").find_all('script', {"src": True})
