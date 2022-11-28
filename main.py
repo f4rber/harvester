@@ -81,7 +81,7 @@ regexes = {
     "Twilio API Key": r"SK[0-9a-fA-F]{32}",
     "Twitter Access Token": r"[tT][wW][iI][tT][tT][eE][rR].*[1-9][0-9]+-[0-9a-zA-Z]{40}",
     "Twitter OAuth": r"[tT][wW][iI][tT][tT][eE][rR].*['|\"][0-9a-zA-Z]{35,44}['|\"]",
-    'Json web token': r'ey[A-Za-z0-9_-]*\.[A-Za-z0-9._-]*|ey[A-Za-z0-9_\/+-]*\.[A-Za-z0-9._\/+-]*'
+    'Json web token': r'^[A-Za-z0-9_-]{2,}(?:\.[A-Za-z0-9_-]{2,}){2}$'
 }
 
 
@@ -220,7 +220,7 @@ def regex_checker(req, url):
                 if args.verbose:
                     print(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] {url}, {reg[0]}, {find}")
                 for id_ in ids:
-                    bot.send_message(id_, f"Found by regex parser ('{reg[0]}:{find}') :\n" + url + f"\nResponse length : {len(req.data)} bytes")
+                    bot.send_message(id_, f"Found by #regex parser ('{reg[0]}:{find}') :\n" + url + f"\nResponse length : {len(req.data)} bytes")
                 f = open("reports/report.txt", "a")
                 f.write(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] Found by regex parser ('{reg[0]}:{find}') |" + url + f"|Response length : {len(req.data)} bytes")
                 f.close()
@@ -249,21 +249,33 @@ def scanner(url):
             if builtwith_req:
                 print(f"[{datetime.datetime.utcnow().replace(microsecond=0)}] Discovered technologies: {url}\n{builtwith_req}\n")
         if "wikis" in builtwith_req:
+            for id_ in ids:
+                bot.send_message(id_, f"Found by #technology parser {url}:\n({','.join(builtwith_req['wikis'])})")
             f = open(f"reports/wikis.txt", "a", encoding="utf-8")
             f.write(f"{url}|{','.join(builtwith_req['wikis'])}\n")
         if "lms" in builtwith_req:
+            for id_ in ids:
+                bot.send_message(id_, f"Found by #technology parser {url}:\n({','.join(builtwith_req['lms'])})")
             f = open(f"reports/lms.txt", "a", encoding="utf-8")
             f.write(f"{url}|{','.join(builtwith_req['lms'])}\n")
         if "web-servers" in builtwith_req:
+            for id_ in ids:
+                bot.send_message(id_, f"Found by #technology parser {url}:\n({','.join(builtwith_req['web-servers'])})")
             f = open(f"reports/web-servers.txt", "a", encoding="utf-8")
             f.write(f"{url}|{','.join(builtwith_req['web-servers'])}\n")
         if "programming-languages" in builtwith_req:
+            for id_ in ids:
+                bot.send_message(id_, f"Found by #technology parser {url}:\n({','.join(builtwith_req['programming-languages'])})")
             f = open(f"reports/programming-languages.txt", "a", encoding="utf-8")
             f.write(f"{url}|{','.join(builtwith_req['programming-languages'])}\n")
         if "cms" in builtwith_req:
+            for id_ in ids:
+                bot.send_message(id_, f"Found by #technology parser {url}:\n({','.join(builtwith_req['cms'])})")
             f = open(f"reports/cms.txt", "a", encoding="utf-8")
             f.write(f"{url}|{','.join(builtwith_req['cms'])}\n")
         if "web-frameworks" in builtwith_req:
+            for id_ in ids:
+                bot.send_message(id_, f"Found by #technology parser {url}:\n({','.join(builtwith_req['web-frameworks'])})")
             f = open(f"reports/web-frameworks.txt", "a", encoding="utf-8")
             f.write(f"{url}|{','.join(builtwith_req['web-frameworks'])}\n")
 
@@ -294,7 +306,7 @@ def scanner(url):
         for link in links:
             if "|" in link:
                 req = header_gen().request("GET", url + link.split("|")[0], retries=Retry(2), timeout=Timeout(30))
-                if req.status == 200 and 10 < len(req.data) != resp_len:
+                if req.status == 200 and 10 < len(req.data) != resp_len and len(req.data) < 4000:
                     if args.verbose:
                         print(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] Found by status code ('{req.status}') : " + url + link.split("|")[0] + f"\nResponse length : {len(req.data)} bytes")
                     f = open("reports/report.txt", "a")
@@ -304,9 +316,9 @@ def scanner(url):
                 if "+" in link.split("|")[1]:
                     if link.split("|")[1].split("+")[1] in req.data.decode("utf-8", "ignore"):
                         if args.verbose:
-                            print(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] Found by content parsing ('{link.split('|')[1].split('+')[1]}') : " + url + link.split("|")[0] + f"\nResponse length : {len(req.data)} bytes")
+                            print(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] Found by #ontent parsing ('{link.split('|')[1].split('+')[1]}') : " + url + link.split("|")[0] + f"\nResponse length : {len(req.data)} bytes")
                         for id_ in ids:
-                            bot.send_message(id_, f"Found by content parsing ('{link.split('|')[1].split('+')[1]}') :\n" + url + link.split("|")[0] + f"\nResponse length : {len(req.data)} bytes")
+                            bot.send_message(id_, f"Found by #content parsing ('{link.split('|')[1].split('+')[1]}') :\n" + url + link.split("|")[0] + f"\nResponse length : {len(req.data)} bytes")
                         f = open("reports/report.txt", "a")
                         f.write(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] Found by content parsing ('{link.split('|')[1].split('+')[1]}') |" + url + link.split("|")[0] + f"|Response length : {len(req.data)} bytes\n")
                         f.close()
@@ -314,11 +326,11 @@ def scanner(url):
                     regex_checker(req, url + link.split("|")[0])
             else:
                 req = header_gen().request("GET", url + link, retries=Retry(2), timeout=Timeout(20))
-                if req.status == 200 and resp_len != len(req.data):
+                if req.status == 200 and resp_len != len(req.data) and len(req.data) < 4000:
                     if args.verbose:
                         print(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] Found by status code ('{req.status}') : " + url + link + f"\nResponse length : {len(req.data)} bytes")
                     for id_ in ids:
-                        bot.send_message(id_, f"Found by status code ('{req.status}') :\n" + url + link + f"\nResponse length : {len(req.data)} bytes")
+                        bot.send_message(id_, f"Found by #status code ('{req.status}') :\n" + url + link + f"\nResponse length : {len(req.data)} bytes")
                     f = open("reports/report.txt", "a")
                     f.write(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] Found by status code ('{req.status}') :\n" + url + link + f"|Response length : {len(req.data)} bytes\n")
                     f.close()
