@@ -223,7 +223,7 @@ def regex_checker(req, url):
                     if args.verbose:
                         print(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] {url}, {reg[0]}, {find}")
                     for id_ in ids:
-                        bot.send_message(id_, f"Found by #regex parser ('{reg[0]}:{find}') :\n" + url + f"\nResponse length : {len(req.data)} bytes")
+                        bot.send_message(id_, f"Found by #regex parser ('{reg[0]}:{find}') :\n" + url + f"\nResponse length : {len(req.data)} bytes", disable_web_page_preview=True)
                     f = open("reports/report.txt", "a")
                     f.write(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] Found by regex parser ('{reg[0]}:{find}') |" + url + f"|Response length : {len(req.data)} bytes")
                     f.close()
@@ -251,9 +251,9 @@ def scanner(url):
         if builtwith_req:
             sorted_tech = ""
             for tech_type, software in sorted(builtwith_req.items()):
-                sorted_tech += f"{tech_type}: {','.join(software)}\n"
+                sorted_tech += f"{tech_type}: {', '.join(software)}\n"
             for id_ in ids:
-                bot.send_message(id_, f"{url}\nFound by #technology parser:\n{sorted_tech}")
+                bot.send_message(id_, f"{url}\nFound by #technology parser:\n{sorted_tech}", disable_web_page_preview=True)
             if args.verbose:
                 print(f"[{datetime.datetime.utcnow().replace(microsecond=0)}] Discovered technologies: {url}\n{sorted_tech}")
         if "wikis" in builtwith_req:
@@ -314,7 +314,7 @@ def scanner(url):
                         if args.verbose:
                             print(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] Found by #ontent parsing ('{link.split('|')[1].split('+')[1]}') : " + url + link.split("|")[0] + f"\nResponse length : {len(req.data)} bytes")
                         for id_ in ids:
-                            bot.send_message(id_, f"Found by #content parsing ('{link.split('|')[1].split('+')[1]}') :\n" + url + link.split("|")[0] + f"\nResponse length : {len(req.data)} bytes")
+                            bot.send_message(id_, f"Found by #content parsing ('{link.split('|')[1].split('+')[1]}') :\n" + url + link.split("|")[0] + f"\nResponse length : {len(req.data)} bytes", disable_web_page_preview=True)
                         f = open("reports/report.txt", "a")
                         f.write(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] Found by content parsing ('{link.split('|')[1].split('+')[1]}') |" + url + link.split("|")[0] + f"|Response length : {len(req.data)} bytes\n")
                         f.close()
@@ -326,7 +326,7 @@ def scanner(url):
                     if args.verbose:
                         print(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] Found by status code ('{req.status}') : " + url + link + f"\nResponse length : {len(req.data)} bytes")
                     for id_ in ids:
-                        bot.send_message(id_, f"Found by #status code ('{req.status}') :\n" + url + link + f"\nResponse length : {len(req.data)} bytes")
+                        bot.send_message(id_, f"Found by #status code ('{req.status}') :\n" + url + link + f"\nResponse length : {len(req.data)} bytes", disable_web_page_preview=True)
                     f = open("reports/report.txt", "a")
                     f.write(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] Found by status code ('{req.status}') :\n" + url + link + f"|Response length : {len(req.data)} bytes\n")
                     f.close()
