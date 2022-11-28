@@ -220,9 +220,9 @@ def regex_checker(req, url):
                 if args.verbose:
                     print(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] {url}, {reg[0]}, {find}")
                 for id_ in ids:
-                    bot.send_message(id_, f"Found by regex parser ('{reg[0]}') :\n" + url + f"\nResponse length : {len(req.data)} bytes")
+                    bot.send_message(id_, f"Found by regex parser ('{reg[0]}:{find}') :\n" + url + f"\nResponse length : {len(req.data)} bytes")
                 f = open("reports/report.txt", "a")
-                f.write(f"[{datetime.datetime.utcnow().replace(microsecond=0)}] Found by regex parser ('{reg[0]}') :\n" + url + f"\nResponse length : {len(req.data)} bytes")
+                f.write(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] Found by regex parser ('{reg[0]}:{find}') |" + url + f"|Response length : {len(req.data)} bytes")
                 f.close()
 
 
@@ -298,7 +298,7 @@ def scanner(url):
                     if args.verbose:
                         print(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] Found by status code ('{req.status}') : " + url + link.split("|")[0] + f"\nResponse length : {len(req.data)} bytes")
                     f = open("reports/report.txt", "a")
-                    f.write(f"[{datetime.datetime.utcnow().replace(microsecond=0)}] Found by status code ('{req.status}') :\n" + url + link.split("|")[0] + f"\nResponse length : {len(req.data)} bytes\n")
+                    f.write(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] Found by status code ('{req.status}') |" + url + link.split("|")[0] + f"|Response length : {len(req.data)} bytes\n")
                     f.close()
                     resp_len = len(req.data)
                 if "+" in link.split("|")[1]:
@@ -308,7 +308,7 @@ def scanner(url):
                         for id_ in ids:
                             bot.send_message(id_, f"Found by content parsing ('{link.split('|')[1].split('+')[1]}') :\n" + url + link.split("|")[0] + f"\nResponse length : {len(req.data)} bytes")
                         f = open("reports/report.txt", "a")
-                        f.write(f"[{datetime.datetime.utcnow().replace(microsecond=0)}] Found by content parsing ('{link.split('|')[1].split('+')[1]}') :\n" + url + link.split("|")[0] + f"\nResponse length : {len(req.data)} bytes\n")
+                        f.write(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] Found by content parsing ('{link.split('|')[1].split('+')[1]}') |" + url + link.split("|")[0] + f"|Response length : {len(req.data)} bytes\n")
                         f.close()
                 elif "regex" in link.split("|")[1]:
                     regex_checker(req, url + link.split("|")[0])
@@ -320,10 +320,10 @@ def scanner(url):
                     for id_ in ids:
                         bot.send_message(id_, f"Found by status code ('{req.status}') :\n" + url + link + f"\nResponse length : {len(req.data)} bytes")
                     f = open("reports/report.txt", "a")
-                    f.write(f"[{datetime.datetime.utcnow().replace(microsecond=0)}] Found by status code ('{req.status}') :\n" + url + link + f"\nResponse length : {len(req.data)} bytes\n")
+                    f.write(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] Found by status code ('{req.status}') :\n" + url + link + f"|Response length : {len(req.data)} bytes\n")
                     f.close()
                     resp_len = len(req.data)
-            f = open(f"reports/status_{req.status}.txt", "a", encoding="utf-8")
+            f = open(f"reports/status/status_{req.status}.txt", "a", encoding="utf-8")
             f.write(f"{url + link}\n")
             f.close()
 
