@@ -210,20 +210,23 @@ def contains_dict(d1, d2):
 
 
 def regex_checker(req, url):
+    discovered = []
     for reg in regexes.items():
         my_re = re.compile(regex.replace(r'%%regex%%', reg[1]), re.VERBOSE)
         find_regex = my_re.findall(req.data.decode("utf-8", "ignore"))
         if find_regex:
             for find in find_regex:
-                if len(find) > 200:
-                    continue
-                if args.verbose:
-                    print(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] {url}, {reg[0]}, {find}")
-                for id_ in ids:
-                    bot.send_message(id_, f"Found by #regex parser ('{reg[0]}:{find}') :\n" + url + f"\nResponse length : {len(req.data)} bytes")
-                f = open("reports/report.txt", "a")
-                f.write(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] Found by regex parser ('{reg[0]}:{find}') |" + url + f"|Response length : {len(req.data)} bytes")
-                f.close()
+                if find not in discovered:
+                    discovered.append(find)
+                    if len(find) > 200:
+                        continue
+                    if args.verbose:
+                        print(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] {url}, {reg[0]}, {find}")
+                    for id_ in ids:
+                        bot.send_message(id_, f"Found by #regex parser ('{reg[0]}:{find}') :\n" + url + f"\nResponse length : {len(req.data)} bytes")
+                    f = open("reports/report.txt", "a")
+                    f.write(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] Found by regex parser ('{reg[0]}:{find}') |" + url + f"|Response length : {len(req.data)} bytes")
+                    f.close()
 
 
 def scanner(url):
@@ -246,10 +249,13 @@ def scanner(url):
 
         builtwith_req, page_html = builtwith(url)
         if builtwith_req:
+            sorted_tech = ""
+            for tech_type, software in sorted(builtwith_req.items()):
+                sorted_tech += f"{tech_type}: {','.join(software)}\n"
             for id_ in ids:
-                bot.send_message(id_, f"{url}\nFound by #technology parser:\n{builtwith_req}")
+                bot.send_message(id_, f"{url}\nFound by #technology parser:\n{sorted_tech}")
             if args.verbose:
-                print(f"[{datetime.datetime.utcnow().replace(microsecond=0)}] Discovered technologies: {url}\n{builtwith_req}\n")
+                print(f"[{datetime.datetime.utcnow().replace(microsecond=0)}] Discovered technologies: {url}\n{sorted_tech}")
         if "wikis" in builtwith_req:
             f = open(f"reports/wikis.txt", "a", encoding="utf-8")
             f.write(f"{url}|{','.join(builtwith_req['wikis'])}\n")
