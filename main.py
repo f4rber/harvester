@@ -245,37 +245,27 @@ def scanner(url):
             print(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] Checking {url}")
 
         builtwith_req, page_html = builtwith(url)
-        if args.verbose:
-            if builtwith_req:
+        if builtwith_req:
+            for id_ in ids:
+                bot.send_message(id_, f"{url}\nFound by #technology parser:\n{builtwith_req}")
+            if args.verbose:
                 print(f"[{datetime.datetime.utcnow().replace(microsecond=0)}] Discovered technologies: {url}\n{builtwith_req}\n")
         if "wikis" in builtwith_req:
-            for id_ in ids:
-                bot.send_message(id_, f"Found by #technology parser {url}:\n({','.join(builtwith_req['wikis'])})")
             f = open(f"reports/wikis.txt", "a", encoding="utf-8")
             f.write(f"{url}|{','.join(builtwith_req['wikis'])}\n")
         if "lms" in builtwith_req:
-            for id_ in ids:
-                bot.send_message(id_, f"Found by #technology parser {url}:\n({','.join(builtwith_req['lms'])})")
             f = open(f"reports/lms.txt", "a", encoding="utf-8")
             f.write(f"{url}|{','.join(builtwith_req['lms'])}\n")
         if "web-servers" in builtwith_req:
-            for id_ in ids:
-                bot.send_message(id_, f"Found by #technology parser {url}:\n({','.join(builtwith_req['web-servers'])})")
             f = open(f"reports/web-servers.txt", "a", encoding="utf-8")
             f.write(f"{url}|{','.join(builtwith_req['web-servers'])}\n")
         if "programming-languages" in builtwith_req:
-            for id_ in ids:
-                bot.send_message(id_, f"Found by #technology parser {url}:\n({','.join(builtwith_req['programming-languages'])})")
             f = open(f"reports/programming-languages.txt", "a", encoding="utf-8")
             f.write(f"{url}|{','.join(builtwith_req['programming-languages'])}\n")
         if "cms" in builtwith_req:
-            for id_ in ids:
-                bot.send_message(id_, f"Found by #technology parser {url}:\n({','.join(builtwith_req['cms'])})")
             f = open(f"reports/cms.txt", "a", encoding="utf-8")
             f.write(f"{url}|{','.join(builtwith_req['cms'])}\n")
         if "web-frameworks" in builtwith_req:
-            for id_ in ids:
-                bot.send_message(id_, f"Found by #technology parser {url}:\n({','.join(builtwith_req['web-frameworks'])})")
             f = open(f"reports/web-frameworks.txt", "a", encoding="utf-8")
             f.write(f"{url}|{','.join(builtwith_req['web-frameworks'])}\n")
 
