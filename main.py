@@ -10,6 +10,7 @@ import argparse
 import telebot
 import datetime
 from bs4 import BeautifulSoup
+from urllib.parse import urlparse
 from urllib3 import Timeout, Retry
 from urllib3.contrib.socks import SOCKSProxyManager
 from multiprocessing import Pool, freeze_support
@@ -24,8 +25,8 @@ parser.add_argument("-f", "--file", help="urls.txt", type=str, required=True)
 args = parser.parse_args()
 
 bot_id = ""
-bot = telebot.TeleBot(bot_id, parse_mode=None)
 ids = ['']
+bot = telebot.TeleBot(bot_id, parse_mode=None)
 links = [i.split("\n")[0] for i in open("links.txt", "r").readlines()]
 data = json.load(open("apps.json.py", "r"))
 ua = ['Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; zh-cn) Opera 8.65',
@@ -229,7 +230,24 @@ def regex_checker(req, url):
                     f.close()
 
 
-def scanner(url):
+def subdomains(domain):
+    domains_list = []
+    try:
+        send = header_gen().request("GET", f"https://api.hackertarget.com/hostsearch/?q={domain}", retries=Retry(3), timeout=Timeout(30))
+        response = send.data.decode("utf-8")
+        if response:
+            for domain in response.split("\n"):
+                if len(domain.split(",")[0]) < 35:
+                    domains_list.append(domain)
+
+    except Exception as e:
+        if args.verbose:
+            if "SOCKS" not in str(e) and "retries" not in str(e) and "timeout" not in str(e) and "XMLParsedAsHTMLWarning" not in str(e):
+                print(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] Error with {domain}\n{str(e)}")
+    return domains_list
+
+
+def scanner(domain):
     enabled = open("enabled.txt", "r").read().strip()
     if enabled == "False":
         name = __file__.split("/")[-1]
@@ -241,111 +259,98 @@ def scanner(url):
         os.kill(os.getppid(), SIGKILL)
         os.kill(os.getpid(), SIGKILL)
     resp_len = 0
-    try:
-        if "http" not in url:
-            url = "http://" + url
-        if args.verbose:
-            print(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] Checking {url}")
-
-        builtwith_req, page_html = builtwith(url)
-        if builtwith_req:
-            sorted_tech = ""
-            for tech_type, software in sorted(builtwith_req.items()):
-                sorted_tech += f"{tech_type}: {', '.join(software)}\n"
-            for id_ in ids:
-                bot.send_message(id_, f"{url}\nFound by #technology parser:\n{sorted_tech}", disable_web_page_preview=True)
+    sub_domains = subdomains(urlparse(domain).netloc)
+    sub_domains.append(domain)
+    for url in sub_domains:
+        try:
+            if "http" not in url:
+                url = "http://" + url
             if args.verbose:
-                print(f"[{datetime.datetime.utcnow().replace(microsecond=0)}] Discovered technologies: {url}\n{sorted_tech}")
-        if "wikis" in builtwith_req:
-            f = open(f"reports/wikis.txt", "a", encoding="utf-8")
-            f.write(f"{url}|{','.join(builtwith_req['wikis'])}\n")
-        if "lms" in builtwith_req:
-            f = open(f"reports/lms.txt", "a", encoding="utf-8")
-            f.write(f"{url}|{','.join(builtwith_req['lms'])}\n")
-        if "web-servers" in builtwith_req:
-            f = open(f"reports/web-servers.txt", "a", encoding="utf-8")
-            f.write(f"{url}|{','.join(builtwith_req['web-servers'])}\n")
-        if "programming-languages" in builtwith_req:
-            f = open(f"reports/programming-languages.txt", "a", encoding="utf-8")
-            f.write(f"{url}|{','.join(builtwith_req['programming-languages'])}\n")
-        if "cms" in builtwith_req:
-            f = open(f"reports/cms.txt", "a", encoding="utf-8")
-            f.write(f"{url}|{','.join(builtwith_req['cms'])}\n")
-        if "web-frameworks" in builtwith_req:
-            f = open(f"reports/web-frameworks.txt", "a", encoding="utf-8")
-            f.write(f"{url}|{','.join(builtwith_req['web-frameworks'])}\n")
+                print(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] Checking {url}")
 
-        if page_html:
-            all_script_tags = BeautifulSoup(page_html, features="html.parser").find_all('script', {"src": True})
-            for js in all_script_tags:
-                if js['src'].startswith("//"):
-                    if args.verbose:
-                        print(f"[{datetime.datetime.utcnow().replace(microsecond=0)}] Found js file: {url}{'/'.join(js['src'].split('/')[1:])}")
-                    req_js = header_gen().request("GET", url + '/'.join(js['src'].split('/')[1:]), retries=Retry(2), timeout=Timeout(30))
-                    regex_checker(req_js, url + '/'.join(js['src'].split('/')[1:]))
-                elif js['src'].startswith("/"):
-                    if args.verbose:
-                        print(f"[{datetime.datetime.utcnow().replace(microsecond=0)}] Found js file: {url}{js['src']}")
-                    req_js = header_gen().request("GET", url + js['src'], retries=Retry(2), timeout=Timeout(30))
-                    regex_checker(req_js, url + js['src'])
-                elif js['src'].startswith("http"):
-                    if args.verbose:
-                        print(f"[{datetime.datetime.utcnow().replace(microsecond=0)}] Found js file: {js['src']}")
-                    req_js = header_gen().request("GET", js['src'], retries=Retry(2), timeout=Timeout(30))
-                    regex_checker(req_js, js['src'])
-                else:
-                    if args.verbose:
-                        print(f"[{datetime.datetime.utcnow().replace(microsecond=0)}] Found js file: {url}/{js['src']}")
-                    req_js = header_gen().request("GET", url + "/" + js['src'], retries=Retry(2), timeout=Timeout(30))
-                    regex_checker(req_js, url + "/" + js['src'])
+            builtwith_req, page_html = builtwith(url)
+            if builtwith_req:
+                sorted_tech = ""
+                for tech_type, software in sorted(builtwith_req.items()):
+                    sorted_tech += f"{tech_type}: {', '.join(software)}\n"
+                    f = open(f"reports/{tech_type}.txt", "a", encoding="utf-8")
+                    f.write(f"{url}|{', '.join(software)}\n")
+                for id_ in ids:
+                    bot.send_message(id_, f"{url}\nFound by #technology parser:\n{sorted_tech}", disable_web_page_preview=True)
+                if args.verbose:
+                    print(f"[{datetime.datetime.utcnow().replace(microsecond=0)}] Discovered technologies: {url}\n{sorted_tech}")
 
-        for link in links:
-            if "|" in link:
-                req = header_gen().request("GET", url + link.split("|")[0], retries=Retry(2), timeout=Timeout(30))
-                if req.status == 200 and 10 < len(req.data) != resp_len and len(req.data) < 4000:
-                    if args.verbose:
-                        print(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] Found by status code ('{req.status}') : " + url + link.split("|")[0] + f"\nResponse length : {len(req.data)} bytes")
-                    f = open("reports/report.txt", "a")
-                    f.write(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] Found by status code ('{req.status}') |" + url + link.split("|")[0] + f"|Response length : {len(req.data)} bytes\n")
-                    f.close()
-                    resp_len = len(req.data)
-                if "+" in link.split("|")[1]:
-                    if link.split("|")[1].split("+")[1] in req.data.decode("utf-8", "ignore"):
+            if page_html:
+                all_script_tags = BeautifulSoup(page_html, features="html.parser").find_all('script', {"src": True})
+                for js in all_script_tags:
+                    if js['src'].startswith("//"):
                         if args.verbose:
-                            print(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] Found by #ontent parsing ('{link.split('|')[1].split('+')[1]}') : " + url + link.split("|")[0] + f"\nResponse length : {len(req.data)} bytes")
-                        for id_ in ids:
-                            bot.send_message(id_, f"Found by #content parsing ('{link.split('|')[1].split('+')[1]}') :\n" + url + link.split("|")[0] + f"\nResponse length : {len(req.data)} bytes", disable_web_page_preview=True)
+                            print(f"[{datetime.datetime.utcnow().replace(microsecond=0)}] Found js file: {url}{'/'.join(js['src'].split('/')[1:])}")
+                        req_js = header_gen().request("GET", url + '/'.join(js['src'].split('/')[1:]), retries=Retry(2), timeout=Timeout(30))
+                        regex_checker(req_js, url + '/'.join(js['src'].split('/')[1:]))
+                    elif js['src'].startswith("/"):
+                        if args.verbose:
+                            print(f"[{datetime.datetime.utcnow().replace(microsecond=0)}] Found js file: {url}{js['src']}")
+                        req_js = header_gen().request("GET", url + js['src'], retries=Retry(2), timeout=Timeout(30))
+                        regex_checker(req_js, url + js['src'])
+                    elif js['src'].startswith("http"):
+                        if args.verbose:
+                            print(f"[{datetime.datetime.utcnow().replace(microsecond=0)}] Found js file: {js['src']}")
+                        req_js = header_gen().request("GET", js['src'], retries=Retry(2), timeout=Timeout(30))
+                        regex_checker(req_js, js['src'])
+                    else:
+                        if args.verbose:
+                            print(f"[{datetime.datetime.utcnow().replace(microsecond=0)}] Found js file: {url}/{js['src']}")
+                        req_js = header_gen().request("GET", url + "/" + js['src'], retries=Retry(2), timeout=Timeout(30))
+                        regex_checker(req_js, url + "/" + js['src'])
+
+            for link in links:
+                if "|" in link:
+                    req = header_gen().request("GET", url + link.split("|")[0], retries=Retry(2), timeout=Timeout(30))
+                    if req.status == 200 and 10 < len(req.data) != resp_len and len(req.data) < 4000:
+                        if args.verbose:
+                            print(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] Found by status code ('{req.status}') : " + url + link.split("|")[0] + f"\nResponse length : {len(req.data)} bytes")
                         f = open("reports/report.txt", "a")
-                        f.write(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] Found by content parsing ('{link.split('|')[1].split('+')[1]}') |" + url + link.split("|")[0] + f"|Response length : {len(req.data)} bytes\n")
+                        f.write(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] Found by status code ('{req.status}') |" + url + link.split("|")[0] + f"|Response length : {len(req.data)} bytes\n")
                         f.close()
-                elif "regex" in link.split("|")[1]:
-                    regex_checker(req, url + link.split("|")[0])
-            else:
-                req = header_gen().request("GET", url + link, retries=Retry(2), timeout=Timeout(20))
-                if req.status == 200 and resp_len != len(req.data) and len(req.data) < 4000:
-                    if args.verbose:
-                        print(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] Found by status code ('{req.status}') : " + url + link + f"\nResponse length : {len(req.data)} bytes")
-                    for id_ in ids:
-                        bot.send_message(id_, f"Found by #status code ('{req.status}') :\n" + url + link + f"\nResponse length : {len(req.data)} bytes", disable_web_page_preview=True)
-                    f = open("reports/report.txt", "a")
-                    f.write(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] Found by status code ('{req.status}') :\n" + url + link + f"|Response length : {len(req.data)} bytes\n")
-                    f.close()
-                    resp_len = len(req.data)
-            f = open(f"reports/status/status_{req.status}.txt", "a", encoding="utf-8")
-            f.write(f"{url + link}\n")
+                        resp_len = len(req.data)
+                    if "+" in link.split("|")[1] and len(req.data) < 4000:
+                        if link.split("|")[1].split("+")[1] in req.data.decode("utf-8", "ignore"):
+                            if args.verbose:
+                                print(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] Found by #ontent parsing ('{link.split('|')[1].split('+')[1]}') : " + url + link.split("|")[0] + f"\nResponse length : {len(req.data)} bytes")
+                            for id_ in ids:
+                                bot.send_message(id_, f"Found by #content parsing ('{link.split('|')[1].split('+')[1]}') :\n" + url + link.split("|")[0] + f"\nResponse length : {len(req.data)} bytes", disable_web_page_preview=True)
+                            f = open("reports/report.txt", "a")
+                            f.write(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] Found by content parsing ('{link.split('|')[1].split('+')[1]}') |" + url + link.split("|")[0] + f"|Response length : {len(req.data)} bytes\n")
+                            f.close()
+                    elif "regex" in link.split("|")[1]:
+                        regex_checker(req, url + link.split("|")[0])
+                else:
+                    req = header_gen().request("GET", url + link, retries=Retry(2), timeout=Timeout(20))
+                    if req.status == 200 and resp_len != len(req.data) and len(req.data) < 4000:
+                        if args.verbose:
+                            print(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] Found by status code ('{req.status}') : " + url + link + f"\nResponse length : {len(req.data)} bytes")
+                        for id_ in ids:
+                            bot.send_message(id_, f"Found by #status code ('{req.status}') :\n" + url + link + f"\nResponse length : {len(req.data)} bytes", disable_web_page_preview=True)
+                        f = open("reports/report.txt", "a")
+                        f.write(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] Found by status code ('{req.status}') :\n" + url + link + f"|Response length : {len(req.data)} bytes\n")
+                        f.close()
+                        resp_len = len(req.data)
+                f = open(f"reports/status/status_{req.status}.txt", "a", encoding="utf-8")
+                f.write(f"{url + link}\n")
+                f.close()
+
+            f = open("reports/checked.txt", "a", encoding="utf-8")
+            f.write(f"{url}\n")
             f.close()
 
-        f = open("reports/checked.txt", "a", encoding="utf-8")
-        f.write(f"{url}\n")
-        f.close()
-
-    except Exception as ex:
-        f = open("reports/checked.txt", "a", encoding="utf-8")
-        f.write(f"{url}\n")
-        f.close()
-        if args.verbose:
-            if "SOCKS" not in str(ex) and "retries" not in str(ex) and "timeout" not in str(ex) and "XMLParsedAsHTMLWarning" not in str(ex):
-                print(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] Error with {url}\n{str(ex)}")
+        except Exception as ex:
+            f = open("reports/checked.txt", "a", encoding="utf-8")
+            f.write(f"{url}\n")
+            f.close()
+            if args.verbose:
+                if "SOCKS" not in str(ex) and "retries" not in str(ex) and "timeout" not in str(ex) and "XMLParsedAsHTMLWarning" not in str(ex):
+                    print(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] Error with {url}\n{str(ex)}")
 
 
 if __name__ == "__main__":
