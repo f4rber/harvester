@@ -259,7 +259,10 @@ def scanner(domain):
         os.kill(os.getppid(), SIGKILL)
         os.kill(os.getpid(), SIGKILL)
     resp_len = 0
-    sub_domains = subdomains(urlparse(domain).netloc)
+    time.sleep(random.randint(1, 10))
+    sub_domains = []
+    if not re.match(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$', domain):
+        sub_domains = subdomains(urlparse(domain).netloc)
     sub_domains.append(domain)
     for url in sub_domains:
         try:
