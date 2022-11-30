@@ -235,10 +235,16 @@ def subdomains(domain):
     try:
         send = header_gen().request("GET", f"https://api.hackertarget.com/hostsearch/?q={domain}", retries=Retry(3), timeout=Timeout(30))
         response = send.data.decode("utf-8")
-        if response:
+        if response and "error" not in response:
             for domain in response.split("\n"):
-                if len(domain.split(",")[0]) < 35:
-                    domains_list.append(domain)
+                if 35 > len(domain.split(",")[0]) > 1:
+                    if len(domains_list) > 18:
+                        break
+                    # if "http://" + domain.split(",")[0] not in domains_list:
+                    #     domains_list.append("http://" + domain.split(",")[0])
+                    # if "https://" + domain.split(",")[0] not in domains_list:
+                    #     domains_list.append("https://" + domain.split(",")[0])
+                    domains_list.append(domain.split(",")[0])
 
     except Exception as e:
         if args.verbose:
@@ -258,16 +264,26 @@ def scanner(domain):
             os.kill(int(pid), SIGKILL)
         os.kill(os.getppid(), SIGKILL)
         os.kill(os.getpid(), SIGKILL)
+
     resp_len = 0
     sub_domains = []
-    if not re.match(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$', domain):
+    if not re.match(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$', urlparse(domain).netloc):
+        if args.verbose:
+            print(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] Checking subdomains for {domain}")
         time.sleep(random.randint(1, 10))
-        sub_domains = subdomains(urlparse(domain).netloc)
-    sub_domains.append(domain)
+        if "http" not in domain:
+            sub_domains = subdomains(domain)
+        else:
+            sub_domains = subdomains(urlparse(domain).netloc)
+    if len(sub_domains) > 1 and args.verbose:
+        print(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] Found subdomains for {urlparse(domain).netloc}")
+        print(sub_domains)
+    if "http://" not in domain and "http://" + domain not in sub_domains:
+        sub_domains.append("http://" + domain)
+    if "https://" not in domain and "https://" + domain not in sub_domains:
+        sub_domains.append("https://" + domain)
     for url in sub_domains:
         try:
-            if "http" not in url:
-                url = "http://" + url
             if args.verbose:
                 print(f"\n[{datetime.datetime.utcnow().replace(microsecond=0)}] Checking {url}")
 
